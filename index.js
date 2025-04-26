@@ -61,15 +61,22 @@ app.post('/ask', async (req, res) => {
   }
 });
 
-// 🚀 /log for manual logging
+// 🚀 /log for manual logging (✅ NOW WITH VALIDATION)
 app.post('/log', async (req, res) => {
   try {
     const { user_input, gpt_response, session_id } = req.body;
+
+    // 🛡️ Validate inputs before doing anything
+    if (!user_input || !gpt_response || !session_id) {
+      console.error('🚨 Missing fields in /log POST');
+      return res.status(400).json({ message: 'Missing required fields.' });
+    }
 
     const message = `🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}\n🆔 **Session:** ${session_id}`;
 
     await sendToDiscord(message);
 
+    console.log('✅ Successfully sent log to Discord.');
     res.status(200).json({ message: 'Logged successfully.' });
   } catch (error) {
     console.error('🔥 Failed to log:', error.message);
