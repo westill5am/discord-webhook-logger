@@ -1,5 +1,4 @@
 import express from 'express';
-import { OpenAI } from 'openai';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
 import { URLSearchParams } from 'url';
@@ -9,10 +8,9 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
 
-// 🚀 Send logs to Discord
+// 🚀 Send to Discord
 async function sendToDiscord(content) {
   const form = new URLSearchParams();
   form.append('payload_json', JSON.stringify({ content }));
@@ -24,12 +22,12 @@ async function sendToDiscord(content) {
   });
 }
 
-// 🚀 Handle incoming POSTs
+// 🚀 Handle incoming POST to /log
 app.post('/log', async (req, res) => {
   try {
     const { user_input, gpt_response, session_id } = req.body;
 
-    const message = `🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}`;
+    const message = `🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}\n🆔 **Session:** ${session_id}`;
 
     await sendToDiscord(message);
 
@@ -40,12 +38,12 @@ app.post('/log', async (req, res) => {
   }
 });
 
-// 🚀 Dummy page for health check
+// 🚀 Healthcheck page
 app.get('/', (req, res) => {
-  res.send('Logger server running.');
+  res.send('Logger is running!');
 });
 
-// 🚀 Bind to the correct PORT
+// 🚀 Start server
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Logger server running on port ${PORT}`);
