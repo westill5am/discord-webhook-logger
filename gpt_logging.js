@@ -6,7 +6,7 @@ import { URLSearchParams } from 'url';
 dotenv.config();
 
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const LOG_URL = process.env.REPLIT_URL;
+const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
 
 async function sendToDiscord(content) {
   const form = new URLSearchParams();
