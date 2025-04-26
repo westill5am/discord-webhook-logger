@@ -1,81 +1,61 @@
 import express from 'express';
+import { OpenAI } from 'openai';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
-import { OpenAI } from 'openai';
 import cors from 'cors';
 import { URLSearchParams } from 'url';
 
 dotenv.config();
 
 const app = express();
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+
 app.use(cors());
 app.use(express.json());
 
-// 🛠️ HARD-CODED DISCORD WEBHOOK (REAL ONE YOU GAVE)
-const LOG_URL = 'https://discord.com/api/webhooks/1365680084559859943/oJaFyJiXKLWG7ycTmSFnH0cXxb_xuU5gHTc8CRvVm02MVCOLVqTIh-EpVHiNy5q3Z08-';
+const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
 
-// 🚀 Setup OpenAI
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-
-// 🚀 Background logger to Discord
+// 🚀 Send to Discord
 async function sendToDiscord(content) {
-  try {
-    const form = new URLSearchParams();
-    form.append('payload_json', JSON.stringify({ content }));
-
-    const res = await fetch(LOG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: form.toString()
-    });
-
-    if (!res.ok) {
-      throw new Error(`Discord responded with ${res.status}`);
-    }
-
-    console.log('✅ Discord log sent successfully');
-  } catch (error) {
-    console.error('🔥 Discord webhook error:', error.message);
-  }
+  const form = new URLSearchParams();
+  form.append('payload_json', JSON.stringify({ content }));
+  await fetch(LOG_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: form.toString()
+  });
 }
 
-// 🚀 /ask for GPT chat
+// 🚀 /ask: Main GPT chat
 app.post('/ask', async (req, res) => {
   const { user_input } = req.body;
-
   try {
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o',
       messages: [{ role: 'user', content: user_input }]
     });
-
     const gpt_response = completion.choices[0].message.content;
 
-    // Background log
-    await logChat(user_input, gpt_response, 'session-' + Date.now());
+    // Background logging
+    await sendToDiscord(`🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}`);
 
     res.json({ gpt_response });
   } catch (error) {
-    console.error('🔥 Error talking to OpenAI:', error);
+    console.error('🔥 Error talking to OpenAI:', error.message);
     res.status(500).json({ message: 'Failed to get GPT response.' });
   }
 });
 
-// 🚀 /log for manual logging (✅ NOW WITH VALIDATION)
+// 🚀 /log: Manual logging
 app.post('/log', async (req, res) => {
   try {
     const { user_input, gpt_response, session_id } = req.body;
-
-    // 🛡️ Validate inputs before doing anything
     if (!user_input || !gpt_response || !session_id) {
       console.error('🚨 Missing fields in /log POST');
       return res.status(400).json({ message: 'Missing required fields.' });
     }
-
     const message = `🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}\n🆔 **Session:** ${session_id}`;
-
     await sendToDiscord(message);
-
     console.log('✅ Successfully sent log to Discord.');
     res.status(200).json({ message: 'Logged successfully.' });
   } catch (error) {
@@ -84,28 +64,13 @@ app.post('/log', async (req, res) => {
   }
 });
 
-// 🚀 Health check
+// 🚀 Healthcheck
 app.get('/', (req, res) => {
-  res.send('Logger server is alive!');
+  res.send('Logger server running!');
 });
 
 // 🚀 Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Logger server running on port ${PORT}`);
 });
-
-// 🔥 Helper: Chat logger
-async function logChat(user_input, gpt_response, session_id) {
-  try {
-    const res = await fetch('http://localhost:3000/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_input, gpt_response, session_id })
-    });
-
-    console.log('POST to /log done. Status:', res.status);
-  } catch (error) {
-    console.error('🔥 Error sending to local /log:', error.message);
-  }
-}
