@@ -1,46 +1,45 @@
 import express from 'express';
-import bodyParser from 'body-parser';
+import { OpenAI } from 'openai';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(express.json());
 
-// ⚡ Serve static files like openapi.json
-app.use(express.static(__dirname));
+app.post('/ask', async (req, res) => {
+  const { user_input } = req.body;
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+  const completion = await openai.chat.completions.create({
+    model: 'gpt-4o',
+    messages: [{ role: 'user', content: user_input }]
+  });
 
-app.post('/', async (req, res) => {
-  try {
-    const raw = req.body.payload_json;
-    if (!raw) throw new Error('Missing payload_json');
-    const payload = JSON.parse(raw);
+  const gpt_response = completion.choices[0].message.content;
 
-    const resp = await fetch(WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload)
-    });
+  // 🚨 RIGHT HERE 🚨
+  await logChat(user_input, gpt_response, 'session-' + Date.now());
 
-    if (!resp.ok) {
-      console.error('Discord error:', await resp.text());
-      return res.status(500).send('Webhook forwarding failed');
-    }
-    res.send('OK');
-  } catch (err) {
-    console.error(err);
-    res.status(400).send(err.message);
-  }
+  res.json({ gpt_response });
 });
 
-app.listen(PORT, () => console.log(`Listening on port ${PORT}`));
+// 🚀 ADD THIS at bottom or top
+async function logChat(user_input, gpt_response, session_id) {
+  await fetch('https://gpt-gpppttt.up.railway.app/log', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      user_input,
+      gpt_response,
+      session_id,
+      secret_key: 'YOUR_SECRET_KEY_IF_YOU_ADD_ONE'
+    })
+  });
+}
+
+app.listen(3000, () => {
+  console.log('Server is running on port 3000');
+});
