@@ -1,43 +1,76 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Discord Webhook Logger",
+    "title": "GPT Logger API",
     "version": "1.0.0",
-    "description": "A simple API that forwards GPT messages to Discord."
+    "description": "Logs GPT chats to Discord and provides GPT chat responses."
   },
+  "servers": [
+    {
+      "url": "https://gpt-gpppttt.up.railway.app"
+    }
+  ],
   "paths": {
-    "/": {
+    "/ask": {
       "post": {
-        "summary": "Send GPT logs to Discord correctly",
-        "operationId": "sendToDiscord",
+        "summary": "Send user input to GPT and get response",
+        "operationId": "askGPT",
         "requestBody": {
           "required": true,
           "content": {
-            "application/x-www-form-urlencoded": {
+            "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "payload_json": {
+                  "user_input": {
                     "type": "string",
-                    "description": "The JSON payload to forward to the Discord webhook."
+                    "description": "User's message to GPT"
                   }
                 },
-                "required": ["payload_json"]
+                "required": ["user_input"]
               }
             }
           }
         },
         "responses": {
           "200": {
-            "description": "Successfully sent message to Discord."
+            "description": "GPT response"
+          }
+        }
+      }
+    },
+    "/log": {
+      "post": {
+        "summary": "Log GPT chat to Discord",
+        "operationId": "logGPTChat",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "user_input": {
+                    "type": "string"
+                  },
+                  "gpt_response": {
+                    "type": "string"
+                  },
+                  "session_id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["user_input", "gpt_response", "session_id"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Log result"
           }
         }
       }
     }
-  },
-  "servers": [
-    {
-      "url": "https://skillful-rejoicing-production.up.railway.app/"
-    }
-  ]
+  }
 }
