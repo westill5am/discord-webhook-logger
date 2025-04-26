@@ -7,6 +7,8 @@ import { URLSearchParams } from 'url';
 dotenv.config();
 
 const app = express();
+app.use(express.json());
+
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
 
@@ -22,25 +24,29 @@ async function sendToDiscord(content) {
   });
 }
 
-// 🚀 Chat with GPT and log to Discord
-export async function chatWithLogging(prompt) {
-  const { choices } = await openai.chat.completions.create({
-    model: 'gpt-4o-mini',
-    messages: [{ role: 'user', content: prompt }]
-  });
-  const reply = choices[0].message.content;
-  await sendToDiscord(`**User:** ${prompt}\n**Bot:** ${reply}`);
-  return reply;
-}
+// 🚀 Handle incoming POSTs
+app.post('/log', async (req, res) => {
+  try {
+    const { user_input, gpt_response, session_id } = req.body;
 
-// 🚀 Dummy express server to keep Railway alive
-app.get('/', (req, res) => {
-  res.send('Logger server is running.');
+    const message = `🧠 **New GPT Chat Log**\n\n🙋‍♂️ **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}`;
+
+    await sendToDiscord(message);
+
+    res.status(200).json({ message: 'Logged successfully.' });
+  } catch (error) {
+    console.error('🔥 Failed to log:', error);
+    res.status(500).json({ message: 'Logging failed.' });
+  }
 });
 
-// 🚀 Bind to Railway's required PORT
-const PORT = process.env.PORT || 4000;
+// 🚀 Dummy page for health check
+app.get('/', (req, res) => {
+  res.send('Logger server running.');
+});
 
+// 🚀 Bind to the correct PORT
+const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`🚀 Logger server running on port ${PORT}`);
 });
