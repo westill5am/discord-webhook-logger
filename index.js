@@ -11,9 +11,8 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// 🛠️ HARD-CODED DISCORD WEBHOOK (TEMPORARY TESTING)
-const LOG_URL = 'https://discord.com/api/webhooks/YOUR-WEBHOOK-ID/YOUR-WEBHOOK-TOKEN'; 
-// <<<<<< REPLACE with your real Discord webhook URL
+// 🛠️ HARD-CODED DISCORD WEBHOOK (REAL ONE YOU GAVE)
+const LOG_URL = 'https://discord.com/api/webhooks/1365680084559859943/oJaFyJiXKLWG7ycTmSFnH0cXxb_xuU5gHTc8CRvVm02MVCOLVqTIh-EpVHiNy5q3Z08-';
 
 // 🚀 Setup OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
