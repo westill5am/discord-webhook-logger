@@ -32,9 +32,11 @@ app.post('/ask', async (req, res) => {
   }
 });
 
-// 🚀 Updated logChat() with debugging
+// 🚀 Updated logChat() with loud debugging
 async function logChat(user_input, gpt_response, session_id) {
   try {
+    console.log('Trying to POST to logger server...');
+
     const res = await fetch('https://gpt-gpppttt.up.railway.app/log', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -42,16 +44,17 @@ async function logChat(user_input, gpt_response, session_id) {
         user_input,
         gpt_response,
         session_id,
-        secret_key: 'YOUR_SECRET_KEY_IF_YOU_ADD_ONE'  // <-- You can leave this blank if you don't require it yet
+        secret_key: 'YOUR_SECRET_KEY_IF_YOU_ADD_ONE' // If you don't have one, leave as empty string ''
       })
     });
 
-    console.log('logChat sent, status:', res.status);
+    console.log('POST sent. Status:', res.status);
+
     const data = await res.json();
-    console.log('logChat response:', data);
+    console.log('POST response:', data);
 
   } catch (error) {
-    console.error('Error sending to logger server:', error);
+    console.error('🔥 ERROR sending to logger server:', error);
   }
 }
 
