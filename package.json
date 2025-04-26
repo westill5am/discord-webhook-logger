@@ -1,7 +1,7 @@
 {
   "name": "discord-webhook-logger",
   "version": "1.0.0",
-  "description": "Forward GPT logs to Discord via webhook",
+  "description": "A simple Express server to forward GPT logs to a Discord webhook",
   "type": "module",
   "main": "index.js",
   "scripts": {
