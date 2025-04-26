@@ -2,29 +2,45 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Chat with GPT</title>
+  <title>Talk to GPT 🚀</title>
 </head>
-<body>
-  <h1>Ask GPT:</h1>
+<body style="font-family: Arial, sans-serif; padding: 30px;">
+  <h1>🔥 GPT Logger Frontend</h1>
 
-  <input type="text" id="userInput" placeholder="Your question..." />
-  <button onclick="sendMessage()">Send</button>
+  <input type="text" id="userInput" placeholder="Type your message here..." style="width: 300px; padding: 10px;" />
+  <button onclick="sendMessage()" style="padding: 10px 20px;">Send</button>
 
-  <h2>Reply:</h2>
-  <div id="gptResponse"></div>
+  <h2>Response:</h2>
+  <div id="gptResponse" style="margin-top: 20px; padding: 15px; border: 1px solid #ccc;"></div>
 
   <script>
     async function sendMessage() {
-      const input = document.getElementById('userInput').value;
+      const input = document.getElementById('userInput').value.trim();
+      if (!input) {
+        alert('Please type a message!');
+        return;
+      }
 
-      const res = await fetch('http://localhost:3000/ask', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_input: input })
-      });
+      try {
+        const res = await fetch('https://gpt-gpppttt.up.railway.app/ask', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ user_input: input })
+        });
 
-      const data = await res.json();
-      document.getElementById('gptResponse').innerText = data.gpt_response;
+        if (!res.ok) {
+          throw new Error('Failed to contact GPT server');
+        }
+
+        const data = await res.json();
+        document.getElementById('gptResponse').innerText = data.gpt_response;
+
+        // Clear input
+        document.getElementById('userInput').value = '';
+
+      } catch (error) {
+        document.getElementById('gptResponse').innerText = '🔥 Error: ' + error.message;
+      }
     }
   </script>
 </body>
