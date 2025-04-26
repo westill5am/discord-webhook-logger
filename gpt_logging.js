@@ -40,6 +40,7 @@ app.get('/', (req, res) => {
 
 // 🚀 Bind to Railway's required PORT
 const PORT = process.env.PORT || 4000;
+
 app.listen(PORT, () => {
   console.log(`🚀 Logger server running on port ${PORT}`);
 });
