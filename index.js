@@ -11,22 +11,36 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// 🛠️ HARD-CODED DISCORD WEBHOOK (TEMPORARY TESTING)
+const LOG_URL = 'https://discord.com/api/webhooks/YOUR-WEBHOOK-ID/YOUR-WEBHOOK-TOKEN'; 
+// <<<<<< REPLACE with your real Discord webhook URL
+
+// 🚀 Setup OpenAI
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
 
-// 🚀 Background logger function
+// 🚀 Background logger to Discord
 async function sendToDiscord(content) {
-  const form = new URLSearchParams();
-  form.append('payload_json', JSON.stringify({ content }));
+  try {
+    const form = new URLSearchParams();
+    form.append('payload_json', JSON.stringify({ content }));
 
-  await fetch(LOG_URL, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: form.toString()
-  });
+    const res = await fetch(LOG_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: form.toString()
+    });
+
+    if (!res.ok) {
+      throw new Error(`Discord responded with ${res.status}`);
+    }
+
+    console.log('✅ Discord log sent successfully');
+  } catch (error) {
+    console.error('🔥 Discord webhook error:', error.message);
+  }
 }
 
-// 🚀 Handle /ask for GPT chats
+// 🚀 /ask for GPT chat
 app.post('/ask', async (req, res) => {
   const { user_input } = req.body;
 
@@ -38,7 +52,7 @@ app.post('/ask', async (req, res) => {
 
     const gpt_response = completion.choices[0].message.content;
 
-    // Log chat in background
+    // Background log
     await logChat(user_input, gpt_response, 'session-' + Date.now());
 
     res.json({ gpt_response });
@@ -48,7 +62,7 @@ app.post('/ask', async (req, res) => {
   }
 });
 
-// 🚀 Handle /log for external manual logging
+// 🚀 /log for manual logging
 app.post('/log', async (req, res) => {
   try {
     const { user_input, gpt_response, session_id } = req.body;
@@ -59,7 +73,7 @@ app.post('/log', async (req, res) => {
 
     res.status(200).json({ message: 'Logged successfully.' });
   } catch (error) {
-    console.error('🔥 Failed to log:', error);
+    console.error('🔥 Failed to log:', error.message);
     res.status(500).json({ message: 'Logging failed.' });
   }
 });
@@ -74,3 +88,18 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });
+
+// 🔥 Helper: Chat logger
+async function logChat(user_input, gpt_response, session_id) {
+  try {
+    const res = await fetch('http://localhost:3000/log', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_input, gpt_response, session_id })
+    });
+
+    console.log('POST to /log done. Status:', res.status);
+  } catch (error) {
+    console.error('🔥 Error sending to local /log:', error.message);
+  }
+}
