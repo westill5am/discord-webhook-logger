@@ -1,0 +1,43 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Discord Webhook Logger",
+    "version": "1.0.0",
+    "description": "A simple API that forwards GPT messages to Discord."
+  },
+  "paths": {
+    "/": {
+      "post": {
+        "summary": "Send GPT logs to Discord correctly",
+        "operationId": "sendToDiscord",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "payload_json": {
+                    "type": "string",
+                    "description": "The JSON payload to forward to the Discord webhook."
+                  }
+                },
+                "required": ["payload_json"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully sent message to Discord."
+          }
+        }
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "https://skillful-rejoicing-production.up.railway.app/"
+    }
+  ]
+}
