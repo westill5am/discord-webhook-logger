@@ -2,25 +2,25 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>GPT Chat Frontend</title>
+  <title>Chat with GPT</title>
 </head>
 <body>
-  <h1>Ask GPT Something</h1>
+  <h1>Ask GPT:</h1>
 
-  <input type="text" id="userInput" placeholder="Type your message..." />
+  <input type="text" id="userInput" placeholder="Your question..." />
   <button onclick="sendMessage()">Send</button>
 
-  <h2>Response:</h2>
+  <h2>Reply:</h2>
   <div id="gptResponse"></div>
 
   <script>
     async function sendMessage() {
-      const userInput = document.getElementById('userInput').value;
+      const input = document.getElementById('userInput').value;
 
       const res = await fetch('http://localhost:3000/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user_input: userInput })
+        body: JSON.stringify({ user_input: input })
       });
 
       const data = await res.json();
