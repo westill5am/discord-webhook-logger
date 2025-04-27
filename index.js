@@ -1,106 +1,54 @@
 import express from 'express';
+import bodyParser from 'body-parser';
 import fetch from 'node-fetch';
 import dotenv from 'dotenv';
-import cors from 'cors';
-import { OpenAI } from 'openai';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4000;
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-const LOG_URL = process.env.DISCORD_WEBHOOK_URL;
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
 
-app.use(cors());
-app.use(express.json());
+app.use(bodyParser.json());
 
-// 🚀 Send any message to Discord
-async function sendToDiscord(content) {
-  try {
-    const res = await fetch(LOG_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ content })
-    });
-
-    if (!res.ok) {
-      throw new Error(`Failed to send to Discord: ${res.status}`);
-    }
-
-    console.log('✅ Message sent to Discord successfully.');
-  } catch (error) {
-    console.error('🔥 Discord send error:', error.message);
-  }
-}
-
-// 🚀 Chat endpoint
-app.post('/ask', async (req, res) => {
-  const { user_input } = req.body;
-
-  if (!user_input) {
-    return res.status(400).json({ message: 'Missing user_input.' });
-  }
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      messages: [{ role: 'user', content: user_input }]
-    });
-
-    const gpt_response = completion.choices[0].message.content;
-    const session_id = `session-${Date.now()}`;
-
-    // 🛡️ Fire and forget background logging
-    logChat(user_input, gpt_response, session_id);
-
-    res.json({ gpt_response });
-  } catch (error) {
-    console.error('🔥 GPT error:', error.message);
-    res.status(500).json({ message: 'Failed to get GPT response.' });
-  }
-});
-
-// 🚀 Manual /log endpoint
 app.post('/log', async (req, res) => {
+  console.log('✅ Incoming /log POST');
+
   const { user_input, gpt_response, session_id } = req.body;
 
-  if (!user_input || !gpt_response || !session_id) {
-    console.error('🚨 Missing fields in /log POST');
-    return res.status(400).json({ message: 'Missing required fields.' });
+  if (!user_input || !gpt_response) {
+    console.error('❌ Missing user_input or gpt_response');
+    return res.status(400).send('Missing fields');
   }
 
-  const message = `🧠 **New GPT Chat Log**\n\n👤 **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}\n🆔 **Session:** ${session_id}`;
+  res.status(200).send('Received ✅');
 
-  await sendToDiscord(message);
-
-  res.status(200).json({ message: 'Logged successfully.' });
-});
-
-// 🚀 Healthcheck
-app.get('/', (req, res) => {
-  res.send('GPT Logger server is alive!');
-});
-
-// 🚀 Background Logger function
-async function logChat(user_input, gpt_response, session_id) {
   try {
-    const res = await fetch('https://gpt-gpppttt.up.railway.app/log', {
+    const payload = {
+      content: `📝 **New GPT Chat Log**\n\n👤 **User:** ${user_input}\n🤖 **GPT:** ${gpt_response}\n🆔 **Session:** ${session_id || "unknown"}`
+    };
+
+    const response = await fetch(WEBHOOK_URL, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ user_input, gpt_response, session_id })
+      body: JSON.stringify(payload),
     });
 
-    if (!res.ok) {
-      throw new Error(`Failed to background log: ${res.status}`);
+    if (response.ok) {
+      console.log('✅ Successfully sent to Discord');
+    } else {
+      const text = await response.text();
+      console.error(`❌ Discord webhook failed: Status ${response.status}, Body: ${text}`);
     }
-
-    console.log('✅ Chat background-logged successfully.');
-  } catch (error) {
-    console.error('🔥 Background log error:', error.message);
+  } catch (err) {
+    console.error('❌ Error sending to Discord:', err);
   }
-}
+});
 
-// 🚀 Start server
+app.get('/', (req, res) => {
+  res.send('✅ Logger server is running');
+});
+
 app.listen(PORT, () => {
-  console.log(`🚀 GPT Logger running on port ${PORT}`);
+  console.log(`🚀 Server listening on port ${PORT}`);
 });
