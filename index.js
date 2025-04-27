@@ -1,23 +1,21 @@
-const express = require('express');
-const app = express();
-const PORT = process.env.PORT || 8080;
+// Extremely simple server that should work on Railway
+const http = require('http');
 
-// Basic route
-app.get('/', (req, res) => {
-  res.send('Hello from Railway!');
+// Create a basic HTTP server
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end('Hello from Railway!');
 });
 
-// Health check
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', time: new Date().toISOString() });
-});
+// Get port from environment or use default
+const PORT = process.env.PORT || 3000;
 
 // Start server
-app.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
-// Keep logs flowing
+// Log to keep the process alive
 setInterval(() => {
-  console.log(`Still alive at ${new Date().toISOString()}`);
-}, 10000);
+  console.log(`[${new Date().toISOString()}] Server is running`);
+}, 5000);
