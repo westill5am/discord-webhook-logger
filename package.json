@@ -1,10 +1,10 @@
 {
   "name": "discord-webhook-logger",
   "version": "1.0.0",
-  "main": "gpt_logging.js",
+  "main": "index.js",
   "type": "module",
   "scripts": {
-    "start": "node gpt_logging.js"
+    "start": "node index.js"
   },
   "dependencies": {
     "body-parser": "^1.20.2",
