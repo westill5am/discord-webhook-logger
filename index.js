@@ -2,7 +2,6 @@ import express from 'express';
 import bodyParser from 'body-parser';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
-import http from 'http';
 
 // Load environment variables
 dotenv.config();
@@ -12,17 +11,13 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 // Get environment variables with fallbacks
-const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL;
-const SECRET = process.env.LOGGER_SECRET;
-
-// Log configuration on startup
-console.log(`Starting server with configuration:`);
-console.log(`- PORT: ${PORT}`);
-console.log(`- WEBHOOK_URL: ${WEBHOOK_URL ? '✓ Set' : '✗ Not set'}`);
-console.log(`- SECRET: ${SECRET ? '✓ Set' : '✗ Not set'}`);
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || 'https://example.com';
+const SECRET = process.env.LOGGER_SECRET || 'default-secret';
 
 // Middleware
 app.use(bodyParser.json());
+
+// Basic logging middleware
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
   next();
@@ -30,43 +25,25 @@ app.use((req, res, next) => {
 
 // Routes
 app.get('/', (req, res) => {
+  console.log('Root endpoint accessed');
   res.status(200).send('OK');
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ 
-    status: 'ok', 
-    time: new Date().toISOString(),
-    env: {
-      webhook: !!WEBHOOK_URL,
-      secret: !!SECRET
-    }
-  });
 });
 
 app.post('/log', async (req, res) => {
   try {
+    console.log('Log endpoint accessed');
+    
     // Check authentication
     const authHeader = req.headers.authorization;
-    if (!authHeader || !SECRET || authHeader !== `Bearer ${SECRET}`) {
-      console.log('Authentication failed');
+    if (!authHeader || authHeader !== `Bearer ${SECRET}`) {
       return res.status(401).json({ error: 'Unauthorized' });
     }
     
     // Validate request body
     const { user_input, gpt_response, session_id } = req.body;
     if (!user_input || !gpt_response) {
-      console.log('Missing required fields', req.body);
       return res.status(400).json({ error: 'Missing required fields' });
     }
-    
-    // Check webhook URL
-    if (!WEBHOOK_URL) {
-      console.error('Cannot send to Discord: WEBHOOK_URL not set');
-      return res.status(500).json({ error: 'Webhook URL not configured' });
-    }
-    
-    console.log(`Sending log for session: ${session_id || 'N/A'}`);
     
     // Format message
     const message = {
@@ -80,53 +57,21 @@ app.post('/log', async (req, res) => {
       body: JSON.stringify(message)
     });
     
-    if (!response.ok) {
-      throw new Error(`Discord webhook error: ${response.status} ${response.statusText}`);
-    }
-    
-    console.log('Successfully sent log to Discord');
+    console.log(`Discord response status: ${response.status}`);
     res.status(200).json({ status: 'Log sent to Discord' });
   } catch (error) {
     console.error('Error in /log route:', error);
-    res.status(500).json({ error: error.message || 'Failed to send log to Discord' });
+    res.status(500).json({ error: 'Failed to send log to Discord' });
   }
 });
 
-// Create HTTP server
-const server = http.createServer(app);
-
-// Error handlers to prevent crashes
-process.on('uncaughtException', (err) => {
-  console.error('Uncaught exception:', err);
+// Start the server - bind to 0.0.0.0 to listen on all interfaces
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`🚀 Server listening on port ${PORT}`);
+  console.log(`Environment: WEBHOOK_URL=${!!WEBHOOK_URL}, SECRET=${!!SECRET}`);
 });
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.error('Unhandled rejection at:', promise, 'reason:', reason);
-});
-
-// IMPORTANT: Keep-alive interval to prevent Railway from killing the container
+// Print periodic logs to show the server is alive
 setInterval(() => {
-  console.log(`Server still alive at ${new Date().toISOString()}`);
-  
-  // Self-ping to keep the server active
-  try {
-    http.get(`http://localhost:${PORT}/health`, (res) => {
-      let data = '';
-      res.on('data', (chunk) => { data += chunk; });
-      res.on('end', () => { 
-        if (res.statusCode !== 200) {
-          console.error(`Self-health check failed: ${res.statusCode}`);
-        }
-      });
-    }).on('error', (err) => {
-      console.error('Self-health check error:', err);
-    });
-  } catch (err) {
-    console.error('Error in keep-alive ping:', err);
-  }
-}, 30000); // Every 30 seconds
-
-// Start the server
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server listening on all interfaces at port ${PORT}`);
-});
+  console.log(`[${new Date().toISOString()}] Server still running`);
+}, 30000);
